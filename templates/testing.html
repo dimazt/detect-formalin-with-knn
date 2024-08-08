@@ -1,0 +1,65 @@
+{% extends "index.html" %}
+{% block title %}Testing Page{% endblock %}
+{%block content%}
+
+<form id="identificationForm" method="POST" enctype="multipart/form-data">
+    <div class="row mt-3">
+        <div class="col-sm-6 mb-3 mb-sm-0">
+            <div class="card shadow mb-4">
+                <img id="previewImage" style="height: 360px; object-fit: cover; margin: 10px;"
+                    src="{{ url_for('static', filename='no-image.jpg') }}" class="border rounded"
+                    alt="Gambar Tidak Muncul">
+                <div class="card-body">
+                    <h5 class="card-title">Upload Foto Daging Ayam</h5>
+                    <p class="card-text">Upload foto daging ayam untuk melakukan testing.</p>
+                    <input id="fileInput" style="max-width: 300px;" class="form-control" name="test_file" type="file"
+                        multiple> <br>
+                    <button type="button" id="extract-button" class="btn btn-primary">Ekstrak Ciri</button>
+                </div>
+                <div class="col-sm-6">
+                    <div class="mb-3">
+                        <label for="">Input K Value</label>
+                        <input class="form-control" type="number" name="k_value" min="1" value="1">
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <div class="col-sm-6">
+            <div class="card shadow mb-4">
+                <img id="processed-image" style="height: 360px; object-fit: cover; margin: 10px;"
+                    src="{{ url_for('static', filename='no-image.jpg') }}" class="object-fit-cover border rounded"
+                    alt="Gambar Tidak Muncul">
+                <div class="card-body">
+                    <h5 class="card-title">Citra HSV</h5>
+                    <table class="table">
+                        <thead>
+                            <th>No</th>
+                            <th>Ciri</th>
+                            <th>Nilai</th>
+                        </thead>
+                        <tbody id="feature-table-body">
+                            <!-- Data akan diisi oleh jQuery -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <button type="button" id="identifyBtn" class="btn btn-success m-2">Identifikasi</button>
+        <div id="resultCard" class="card m-2 py-3 border-bottom-secondary">
+            <div class="card-body" id="resultText" style="text-align: center; font-size: 24px; font-weight: bold;">
+            </div>
+        </div>
+    </div>
+    <a href="" class="btn btn-danger mt-3">Reset</a>
+</form>
+
+
+{% if result %}
+<h2>Prediction Result: {{ result }}</h2>
+{% endif %}
+{%endblock%}

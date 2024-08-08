@@ -1,0 +1,39 @@
+# Virtual environment
+venv/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Flask instance folder
+instance/
+
+# Editor directories and files
+.vscode/
+.idea/
+
+# Environment variables file
+.env
+
+# SQLite database file
+*.sqlite3
+
+# Logs
+*.log
+
+# Flask and other build artifacts
+*.bak
+*.swp
+.pytest_cache/
+
+# Ignore all files in uploads/training/
+uploads/testing/*
+uploads/hsv_image/*
+
+# Except the .gitkeep files to keep the directory structure
+!uploads/training/formalin/.gitkeep
+!uploads/training/non_formalin/.gitkeep
+!uploads/testing/.gitkeep
+!uploads/hsv_image/.gitkeep

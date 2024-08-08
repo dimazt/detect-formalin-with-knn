@@ -1,0 +1,52 @@
+{% extends "index.html" %}
+{% block title %}Training Page{% endblock %}
+{%block content%}
+
+
+<div class=" mt-3">
+    <form id="trainingForm" method="POST" enctype="multipart/form-data">
+        <div class="row">
+            <div class="col-sm-6 mb-3 mb-sm-0">
+                <div class="card">
+                    <div id="previewContainerFormalin">
+                        <!-- Preview images will be inserted here -->
+                        <img id="defaultImageFormalin" style="height: 360px; object-fit: cover; margin: 10px;"
+                            src="{{ url_for('static', filename='no-image.jpg') }}" class="border rounded"
+                            alt="Gambar Tidak Muncul">
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Sample Formalin</h5>
+                        <p class="card-text">Upload sample foto daging ayam yang menggunakan formalin.</p>
+                        <input style="max-width: 300px;" class="form-control" name="formalin_files" type="file"
+                            id="formalinImageInput" multiple>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6">
+                <div class="card">
+                    <div id="previewContainerNonFormalin">
+                        <!-- Preview images will be inserted here -->
+                        <img id="defaultImageNonFormalin" style="height: 360px; object-fit: cover; margin: 10px;"
+                            src="{{ url_for('static', filename='no-image.jpg') }}" class="border rounded"
+                            alt="Gambar Tidak Muncul">
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Sample Tidak Formalin</h5>
+                        <p class="card-text">Upload sample foto daging ayam yang tidak menggunakan formalin.</p>
+                        <input style="max-width: 300px;" class="form-control" name="non_formalin_files" type="file" 
+                        id="nonFormalinImageInput" multiple>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="progressContainer" style="display: none;">
+            <div class="progress mt-3">
+                <div id="progressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0"
+                    aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+        </div>
+        <button id="trainBtn" style="width: 100%;" class="btn btn-primary mt-3" type="submit">Training</button>
+    </form>
+</div>
+
+{%endblock%}

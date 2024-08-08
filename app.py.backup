@@ -1,0 +1,253 @@
+import os
+import cv2
+import numpy as np
+import pandas as pd
+from flask import Flask, request, redirect, url_for, render_template, jsonify,send_from_directory
+from werkzeug.utils import secure_filename
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import train_test_split  # Pastikan ini ditambahkan
+from sklearn.metrics import confusion_matrix, accuracy_score
+import uuid
+import threading
+import time
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads/'
+app.config['ALLOWED_EXTENSIONS'] = {'png', 'jpg', 'jpeg'}
+training_progress = {'status': 'idle', 'percentage': 0}
+# Helper function to check allowed file extensions
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
+
+# Function to extract RGB values and convert to HSV
+def extract_rgb(image_path):
+    image = cv2.imread(image_path)
+    if image is None:
+        print(f"Gambar tidak ditemukan di path: {image_path}")
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    height, width, _ = image_rgb.shape
+    x, y = width // 2, height // 2
+    r, g, b = image_rgb[y, x]
+    return r, g, b
+
+def convert_hsv_image(image_path):
+    image = cv2.imread(image_path)
+    
+    # Konversi gambar dari BGR (default OpenCV) ke RGB
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    # Konversi gambar dari RGB ke HSV
+    image_hsv = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2HSV)
+    
+    # Mengembalikan gambar HSV
+    return image_hsv
+
+
+def save_hsv_image(image_hsv, original_filename):
+    # Membuat nama file unik dengan UUID
+    filename = secure_filename(original_filename)
+    file_ext = filename.rsplit('.', 1)[1].lower()
+    unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+    
+    # Membuat path penyimpanan di folder HSV
+    hsv_path = os.path.join('uploads/hsv_image', unique_filename)
+    
+    # Menyimpan gambar HSV ke folder hsv_images
+    cv2.imwrite(hsv_path, image_hsv)
+    
+    return hsv_path
+
+def process_image(image_path):
+    image_hsv = convert_hsv_image(image_path)
+    hsv_image_path = save_hsv_image(image_hsv, os.path.basename(image_path))
+    return hsv_image_path
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+    
+def rgb_to_hsv(r, g, b):
+    r_norm = r / 255.0
+    g_norm = g / 255.0
+    b_norm = b / 255.0
+    c_max = max(r_norm, g_norm, b_norm)
+    c_min = min(r_norm, g_norm, b_norm)
+    delta = c_max - c_min
+
+    if delta == 0:
+        h = 0
+    elif c_max == r_norm:
+        h = 60 * (((g_norm - b_norm) / delta) % 6)
+    elif c_max == g_norm:
+        h = 60 * (((b_norm - r_norm) / delta) + 2)
+    elif c_max == b_norm:
+        h = 60 * (((r_norm - g_norm) / delta) + 4)
+    if h < 0:
+        h += 360
+
+    s = (delta / c_max) if c_max != 0 else 0
+    v = c_max
+    return h, s, v
+
+# Fungsi untuk melatih model KNN dan menyimpan model serta data latihnya
+def extract_features(image_path):
+    r, g, b = extract_rgb(image_path)
+    h, s, v = rgb_to_hsv(r, g, b)
+    return h, s, v
+
+# Fungsi untuk melatih model KNN dan menyimpan model serta data latihnya
+def train_model():
+    global training_progress
+    training_progress['status'] = 'running'
+    training_progress['percentage'] = 0
+    training_data = []
+    labels = []
+
+    # Mendapatkan semua gambar dari folder training
+    for category in ['formalin', 'non_formalin']:
+        label = 1 if category == 'formalin' else 0
+        category_path = os.path.join(app.config['UPLOAD_FOLDER'], 'training', category)
+        files = [f for f in os.listdir(category_path) if allowed_file(f)]
+
+        for idx, filename in enumerate(files):
+            image_path = os.path.join(category_path, filename)
+            try:
+                h, s, v = extract_features(image_path)
+                print(image_path)
+                training_data.append([h, s, v])
+                labels.append(label)
+                
+                # Update progress
+                progress = int((idx + 1) / len(files) * 100)
+                training_progress['percentage'] = progress
+                print(training_progress)
+            except Exception as e:
+                print(f"Error processing {image_path}: {e}")
+
+    # Membuat DataFrame dari data pelatihan
+    df = pd.DataFrame(training_data, columns=['H', 'S', 'V'])
+    df['label'] = labels
+
+    # Menyimpan dataset pelatihan ke file CSV
+    df.to_csv('models/training_data.csv', index=False)
+
+    # Memisahkan data menjadi train dan test set
+    X = df[['H', 'S', 'V']].values
+    y = df['label'].values
+    x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    # Melatih model KNN
+    knn = KNeighborsClassifier(n_neighbors=1)  # Anda bisa mengubah nilai K sesuai kebutuhan
+    knn.fit(x_train, y_train)
+
+    # Menguji model
+    y_pred = knn.predict(x_test)
+    cm = confusion_matrix(y_test, y_pred)
+    accuracy = accuracy_score(y_test, y_pred)
+
+    # Menampilkan hasil pelatihan
+    print(f"Confusion Matrix:\n{cm}")
+    print(f"Accuracy: {accuracy:.2f}")
+
+    # Menyimpan model terlatih (jika ingin menggunakan pickle)
+    # import pickle
+    # with open('models/knn_model.pkl', 'wb') as model_file:
+    #     pickle.dump(knn, model_file)
+
+    training_progress['status'] = 'completed'
+    training_progress['percentage'] = 100
+
+@app.route('/training-model', methods=['POST'])
+def training_model():
+    # Process file uploads
+    for category in ['formalin', 'non_formalin']:
+        files = request.files.getlist(f'{category}_files')
+        for file in files:
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file_ext = filename.rsplit('.', 1)[1].lower()
+                unique_filename = f"{uuid.uuid4().hex}.{file_ext}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'training', category, unique_filename))
+
+    # Start training model in a separate thread
+    global training_progress
+    training_progress = {'status': 'idle', 'percentage': 0}
+    threading.Thread(target=train_model).start()
+    return jsonify({'message': 'Training started', 'status': 'success'})
+
+
+@app.route('/training-status', methods=['GET'])
+def training_status():
+    return jsonify(training_progress)
+
+@app.route('/identifikasi', methods=['GET', 'POST'])
+def identifikasi():
+    result = None
+    if request.method == 'POST':
+        file = request.files['test_file']
+        k_value = int(request.form['k_value'])
+
+        if file and allowed_file(file.filename):
+            filename = file.filename
+            test_path = os.path.join(app.config['UPLOAD_FOLDER'], 'testing', filename)
+            file.save(test_path)
+
+            r, g, b = extract_rgb(test_path)
+            h, s, v = rgb_to_hsv(r, g, b)
+            process_image(test_path)
+
+            # Load training data and apply KNN
+            train_data = pd.read_csv('models/training_data.csv')
+            x_train = train_data[['H', 'S', 'V']].values
+            y_train = train_data['label'].values
+
+            knn = KNeighborsClassifier(n_neighbors=k_value)
+            knn.fit(x_train, y_train)
+
+            prediction = knn.predict([[h, s, v]])
+            print(prediction)
+            result = "Berformalin" if prediction[0] == 1 else "Tidak Berformalin"
+
+    return jsonify({'result': result})
+
+@app.route('/ekstraksi', methods=['POST'])
+def ekstraksi():
+    result = None
+    if request.method == 'POST':
+        file = request.files['test_file']
+
+        if file and allowed_file(file.filename):
+            filename = file.filename
+            test_path = os.path.join(app.config['UPLOAD_FOLDER'], 'testing', filename)
+            file.save(test_path)
+
+            r, g, b = extract_rgb(test_path)
+            h, s, v = rgb_to_hsv(r, g, b)
+            image_path = process_image(test_path)
+
+            # Siapkan data untuk dikirimkan sebagai respons JSON
+            hsv_values = [
+                {'name': 'Hue', 'value': h},
+                {'name': 'Saturation', 'value': s},
+                {'name': 'Value', 'value': v},
+            ]
+            image_url = url_for('uploaded_file', filename=image_path.replace('uploads/', ''))
+            # Kembalikan data sebagai JSON
+            return jsonify({
+                'features': hsv_values,
+                'image_url': image_url
+            })
+
+    return jsonify({'error': 'Invalid request'}), 400
+
+@app.route('/')
+def index():
+    return render_template('homepage.html', active_page='homepage')
+
+@app.route('/training')
+def training_page():
+    return render_template('training.html', active_page='training')
+
+@app.route('/testing')
+def testing():
+    return render_template('testing.html', active_page='testing')
+if __name__ == '__main__':
+    app.run(debug=True)
