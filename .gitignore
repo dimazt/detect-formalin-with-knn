@@ -30,6 +30,8 @@ instance/
 
 # Ignore all files in uploads/training/
 uploads/testing/*
+uploads/training/formalin/*
+uploads/training/non_formalin/
 uploads/hsv_image/*
 
 # Except the .gitkeep files to keep the directory structure

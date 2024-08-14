@@ -14,13 +14,21 @@
                     <p class="card-text">Upload foto daging ayam untuk melakukan testing.</p>
                     <input id="fileInput" style="max-width: 300px;" class="form-control" name="test_file" type="file"
                         multiple> <br>
-                    <button type="button" id="extract-button" class="btn btn-primary">Ekstrak Ciri</button>
-                </div>
-                <div class="col-sm-6">
-                    <div class="mb-3">
-                        <label for="">Input K Value</label>
-                        <input class="form-control" type="number" name="k_value" min="1" value="1">
+                    <button type="button" id="extract-button" class="btn btn-primary adminOnly">Ekstrak Ciri</button>
+                    <div class="adminOnly">
+                        <div class="mb-3 mt-3">
+                            <label for="">Input K Value</label>
+                            <div class="row">
+                                <div class="col-3">
+                                    <input class="form-control" type="number" name="k_value" min="1" value="{{k_value}}" id="knn-value">
 
+                                </div>
+                                <div class="col">
+                                    <button type="button" id="save-knn"
+                                        class="btn btn-primary adminOnly">Simpan</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -49,7 +57,7 @@
     </div>
 
     <div class="card shadow">
-        <button type="button" id="identifyBtn" class="btn btn-success m-2">Identifikasi</button>
+        <button type="button" id="identifyBtn" class="btn btn-success m-2 adminOnly">Identifikasi</button>
         <div id="resultCard" class="card m-2 py-3 border-bottom-secondary">
             <div class="card-body" id="resultText" style="text-align: center; font-size: 24px; font-weight: bold;">
             </div>

@@ -29,7 +29,7 @@ def train_model(app, training_progress):
 
     df = pd.DataFrame(training_data, columns=['H', 'S', 'V'])
     df['label'] = labels
-    df.to_csv('models/training_data.csv', index=False)
+    df.to_csv('data/training_data.csv', index=False)
 
     X = df[['H', 'S', 'V']].values
     y = df['label'].values

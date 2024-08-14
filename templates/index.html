@@ -70,14 +70,20 @@
                     </div>
                 </div>
             </div>
-            <div class="btn-group mt-2">
+            <div id="navbar" class="btn-group mt-2">
                 <a href="{{ url_for('home.index') }}"
                     class="btn btn-primary {% if active_page == 'homepage' %}active{% endif %}"
                     aria-current="page">Home</a>
-                <a href="{{ url_for('home.training_page') }}"
-                    class="btn btn-primary {% if active_page == 'training' %}active{% endif %}">Training</a>
                 <a href="{{ url_for('home.testing') }}"
                     class="btn btn-primary {% if active_page == 'testing' %}active{% endif %}">Testing</a>
+                <a href="{{ url_for('home.training_page') }}"
+                    class="btn btn-primary {% if active_page == 'training' %}active{% endif %} adminOnly">Training</a>
+                <a href="{{ url_for('home.management') }}"
+                    class="btn btn-primary {% if active_page == 'management' %}active{% endif %} adminOnly">Management
+                    User</a>
+                <a href="{{ url_for('home.setting') }}"
+                    class="btn btn-primary {% if active_page == 'setting' %}active{% endif %}">Ubah Password</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-danger">Logout</a>
             </div>
         </header>
         <main>
@@ -92,34 +98,29 @@
 <script>
     $(document).ready(function () {
         $('#extract-button').click(function () {
-            var formData = new FormData();
-            formData.append('test_file', $('input[name="test_file"]')[0].files[0]);
-
+            extract()
+        });
+    });
+    $(document).ready(function () {
+        $('#save-knn').click(function () {
+            let knn = $('#knn-value').val()
+            console.log(knn);
             $.ajax({
-                url: '/ekstraksi', // Ganti dengan endpoint API yang sesuai
+                url: '/save-knn',
                 type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                data: JSON.stringify({ k_value: knn }),
+
                 success: function (response) {
                     console.log(response);
-                    var tbody = $('#feature-table-body');
-                    tbody.empty(); // Kosongkan tabel
 
-                    $.each(response.features, function (index, feature) {
-                        tbody.append('<tr><td>' + (index + 1) + '</td><td>' + feature.name + '</td><td>' + feature.value + '</td></tr>');
-                    });
-                    $('#processed-image').attr('src', response.image_url);
-                },
-                error: function (error) {
-                    console.log('Error:', error);
                 }
             });
         });
     });
-</script>
 
-<script>
     $(document).ready(function () {
         $('#fileInput').change(function (event) {
             var file = event.target.files[0];
@@ -127,44 +128,94 @@
                 var reader = new FileReader();
                 reader.onload = function (e) {
                     $('#previewImage').attr('src', e.target.result);
+                    userRole = JSON.parse(localStorage.getItem('user'));
+                    if (userRole.role === 'user') {
+                        extract();
+                        identify();
+                    }
+
                 };
                 reader.readAsDataURL(file);
             }
         });
     });
-</script>
 
-<script>
     $(document).ready(function () {
         $('#identifyBtn').click(function () {
-            var formData = new FormData($('#identificationForm')[0]);
-            $.ajax({
-                url: '/identifikasi',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function (response) {
-                    if (response.result === "Berformalin") {
-                        $('#resultCard').removeClass('border-bottom-success')
-                            .addClass('border-bottom-danger')
-                            .show();
-                        $('#resultText').text("Daging Ayam Berformalin");
-                    } else {
-                        $('#resultCard').removeClass('border-bottom-danger')
-                            .addClass('border-bottom-success')
-                            .show();
-                        $('#resultText').text("Daging Ayam Tidak Berformalin");
-                    }
-                },
-                error: function () {
-                    alert("An error occurred. Please try again.");
-                }
-            });
+            identify()
         });
     });
-</script>
-<script>
+    $.ajax({
+        url: '/is-login',
+        type: 'GET',
+        success: function (response) {
+            console.log(response);
+            var navbar = $('#navbar')
+            if (!response.isLogin) {
+                navbar.remove()
+            }
+            if (response.user && response.user.role == 'user') {
+                $('.adminOnly').remove()
+            }
+            if (response.user) {
+                localStorage.setItem('user', JSON.stringify(response.user))
+                $('#namaUser').text(response.user.fullname)
+            }
+        }
+    });
+    function extract() {
+        var formData = new FormData();
+        formData.append('test_file', $('input[name="test_file"]')[0].files[0]);
+        $.ajax({
+            url: '/ekstraksi', // Ganti dengan endpoint API yang sesuai
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (response) {
+                var tbody = $('#feature-table-body');
+                tbody.empty(); // Kosongkan tabel
+
+                $.each(response.features, function (index, feature) {
+                    tbody.append('<tr><td>' + (index + 1) + '</td><td>' + feature.name + '</td><td>' + feature.value + '</td></tr>');
+                });
+                $('#processed-image').attr('src', response.image_url);
+            },
+            error: function (error) {
+                console.log('Error:', error);
+            }
+        });
+    }
+
+
+    function identify() {
+        var formData = new FormData($('#identificationForm')[0]);
+        $.ajax({
+            url: '/identifikasi',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+
+                if (response.result === "Berformalin") {
+                    $('#resultCard').removeClass('border-bottom-success')
+                        .addClass('border-bottom-danger')
+                        .show();
+                    $('#resultText').text("Daging Ayam Berformalin");
+                } else {
+                    $('#resultCard').removeClass('border-bottom-danger')
+                        .addClass('border-bottom-success')
+                        .show();
+                    $('#resultText').text("Daging Ayam Tidak Berformalin");
+                }
+            },
+            error: function () {
+                alert("An error occurred. Please try again.");
+            }
+        });
+    }
+
     $(document).ready(function () {
         $()
         $('#trainBtn').click(function () {
@@ -213,6 +264,8 @@
         }
 
     });
+
+
     document.getElementById('formalinImageInput').addEventListener('change', function (event) {
         const files = event.target.files;
         const previewContainer = document.getElementById('previewContainerFormalin');
@@ -240,8 +293,8 @@
             previewContainer.style.gridTemplateColumns = 'repeat(3, 1fr)'
             previewContainer.style.gridGap = '10px'
             previewContainer.style.padding = '5px'
-            
-            
+
+
             // If more than one image, create a grid
             for (let i = 0; i < Math.min(files.length, 8); i++) {
                 const file = files[i];
@@ -304,8 +357,8 @@
             previewContainer.style.gridTemplateColumns = 'repeat(3, 1fr)'
             previewContainer.style.gridGap = '10px'
             previewContainer.style.padding = '5px'
-            
-            
+
+
             // If more than one image, create a grid
             for (let i = 0; i < Math.min(files.length, 8); i++) {
                 const file = files[i];

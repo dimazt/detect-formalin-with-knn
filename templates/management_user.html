@@ -1,0 +1,54 @@
+{% extends "index.html" %}
+{% block title %}Management User{% endblock %}
+{%block content%}
+<div class="card shadow mt-3 p-3">
+    {% with messages = get_flashed_messages(with_categories=True) %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div id="resultCard" class="alert alert-{{ category }} p-2">
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+    <div class="row justify-content-center">
+        <div class="col mt-3">
+            <table class="table">
+                <thead>
+                    <th>No</th>
+                    <th>Nama Lengkap</th>
+                    <th>Email</th>
+                    <th>Akses</th>
+                    <th>Aksi</th>
+                </thead>
+                <tbody class="table-body">
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ user.fullname }}</td>
+                        <td>{{ user.email }}</td>
+                        <td>{{ user.role }}</td>
+                        <td>
+                            <a href="/delete-account/{{user.email}}" class="btn btn-sm btn-danger btn-icon-split"
+                                onclick="return confirmDelete()">
+                                <span class="icon text-white">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                            </a>
+
+                            <script>
+                                function confirmDelete() {
+                                    return confirm("Apakah kamu yakin ingin menghapus data ini ?");
+                                }
+                            </script>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{%endblock%}
